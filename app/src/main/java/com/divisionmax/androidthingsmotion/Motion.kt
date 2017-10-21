@@ -5,6 +5,7 @@ import android.os.Bundle
 import android.util.Log
 import android.widget.TextView
 import com.google.android.things.pio.Gpio
+import com.google.android.things.pio.GpioCallback
 import com.google.android.things.pio.PeripheralManagerService
 
 /**
@@ -34,42 +35,54 @@ class Motion : Activity() {
     private val LED_PIN: String = "GPIO_174"
     private var motionSensorGpio: Gpio? = null
     private var ledGpio: Gpio? = null
+    private var txtValue : TextView? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_motion)
-        var txtValue = findViewById<TextView>(R.id.txtvw_value)
-//        motionSensorGpio = PeripheralManagerService().openGpio(MOTION_PIN)
+        txtValue = findViewById(R.id.txtvw_value)
+
+        motionSensorGpio = PeripheralManagerService().openGpio(MOTION_PIN)
         ledGpio = PeripheralManagerService().openGpio(LED_PIN)
         ledGpio?.setDirection(Gpio.DIRECTION_OUT_INITIALLY_LOW)
         ledGpio?.value = true
 
-//        if (motionSensorGpio == null){
-//            Log.d(tag, "No motion sensor available")
-//        }else {
-//            Log.d(tag, "There is a motion sensor")
-//        }
-//        motionSensorGpio?.setDirection(Gpio.DIRECTION_IN)
-//        motionSensorGpio?.setActiveType(Gpio.ACTIVE_HIGH)
-//        motionSensorGpio?.setEdgeTriggerType(Gpio.EDGE_BOTH)
-//        motionSensorGpio?.registerGpioCallback(object : GpioCallback() {
-//            override fun onGpioEdge(gpio: Gpio): Boolean {
-//                if (gpio.value) {
-//                    Log.i(tag, String.format("Sensor value, %s", gpio.value))
-//                    txtValue.setText(gpio.value.toString())
-//                } else {
-//                    Log.i(tag, "No sensor value available")
-//                    txtValue.setText(gpio.value.toString())
-//                }
-//
-//                return true
-//            }
-//        })
+        flashLed()
+
+        if (motionSensorGpio == null){
+            Log.d(tag, "No motion sensor available")
+        }else {
+            Log.d(tag, "There is a motion sensor")
+        }
+        motionSensorGpio?.setDirection(Gpio.DIRECTION_IN)
+        motionSensorGpio?.setActiveType(Gpio.ACTIVE_HIGH)
+        motionSensorGpio?.setEdgeTriggerType(Gpio.EDGE_BOTH)
+        motionSensorGpio?.registerGpioCallback(object : GpioCallback() {
+            override fun onGpioEdge(gpio: Gpio): Boolean {
+                if (gpio.value) {
+                    Log.i(tag, String.format("Sensor value, %s", gpio.value))
+                    txtValue?.setText("Keep movin'!")
+                } else {
+                    Log.i(tag, "No sensor value available")
+                    txtValue?.setText("...")
+                }
+
+                return true
+            }
+        })
+    }
+
+    private fun flashLed() {
+        txtValue?.postDelayed({
+            val b = ledGpio?.value;
+            ledGpio?.value = !b!!
+            flashLed()
+        }, 1000)
     }
 
     override fun onDestroy() {
         super.onDestroy()
-//        motionSensorGpio?.close()
+        motionSensorGpio?.close()
         ledGpio?.close()
  }
 }
