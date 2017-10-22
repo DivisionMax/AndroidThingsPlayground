@@ -11,6 +11,7 @@ import CustomCamera
 import android.graphics.Bitmap
 import android.os.Handler
 import android.widget.ImageView
+import kotlinx.android.synthetic.main.activity_motion.*
 
 class Motion : Activity() {
 
@@ -18,6 +19,7 @@ class Motion : Activity() {
     private val MOTION_PIN: String = "GPIO_35"
     private val LED_PIN: String = "GPIO_174"
 
+    private var txtView: TextView? = null
     private var motionSensorGpio: Gpio? = null
     private var ledGpio: Gpio? = null
     private var imageView: ImageView? = null
@@ -27,17 +29,13 @@ class Motion : Activity() {
         setContentView(R.layout.activity_motion)
         initCamera()
         imageView = findViewById(R.id.img_view)
+        txtView = findViewById(R.id.textView)
         motionSensorGpio = PeripheralManagerService().openGpio(MOTION_PIN)
         ledGpio = PeripheralManagerService().openGpio(LED_PIN)
         ledGpio?.setDirection(Gpio.DIRECTION_OUT_INITIALLY_LOW)
-        ledGpio?.value = true
-
-        flashLed()
-
+        
         if (motionSensorGpio == null){
             Log.d(TAG, "No motion sensor available")
-        }else {
-            Log.d(TAG, "There is a motion sensor")
         }
         motionSensorGpio?.setDirection(Gpio.DIRECTION_IN)
         motionSensorGpio?.setActiveType(Gpio.ACTIVE_HIGH)
@@ -47,6 +45,8 @@ class Motion : Activity() {
                 if (gpio.value) {
                     Log.i(TAG, String.format("Sensor value, %s", gpio.value))
                     camera?.takePicture()
+                    ledGpio?.value = true
+
                 } else {
                     Log.i(TAG, "No sensor value available")
                 }
@@ -69,16 +69,9 @@ class Motion : Activity() {
     private val imageAvailableListener = object: CustomCamera.ImageCapturedListener {
         override fun onImageCaptured(bitmap: Bitmap) {
             imageView?.setImageBitmap(bitmap)
-            //motionViewModel.uploadMotionImgae(bitmap)
+            ledGpio?.value = false
+            textView?.text = getString(R.string.caught)
         }
-    }
-
-    private fun flashLed() {
-//        txtValue?.postDelayed({
-//            val b = ledGpio?.value;
-//            ledGpio?.value = !b!!
-//            flashLed()
-//        }, 1000)
     }
 
     override fun onDestroy() {
